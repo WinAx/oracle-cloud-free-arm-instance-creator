@@ -1,0 +1,18 @@
+# Local OCI configuration. Copy config.example.json to config.json and fill it in.
+config.json
+
+# Runtime output
+*.log
+*.out
+nohup.out
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Editors and OS files
+.DS_Store
+.idea/
+.vscode/
+
