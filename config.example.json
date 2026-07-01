@@ -6,8 +6,8 @@
   "ssh_public_key_file": "/path/to/id_rsa.pub",
   "display_name": "a1-flex",
   "shape": "VM.Standard.A1.Flex",
-  "ocpus": 4,
-  "memory_gb": 24,
+  "ocpus": 2,
+  "memory_gb": 12,
   "boot_volume_gb": 50,
   "availability_domains": [
     "example:REGION-AD-1",

@@ -16,6 +16,7 @@ launch` requests with the official OCI CLI and stops as soon as one request succ
 - Stops immediately after a successful launch.
 - Adds jitter between attempts to avoid a perfectly fixed request pattern.
 - Applies a longer exponential delay when OCI returns rate-limit responses.
+- Stops on non-retryable service-limit, quota, permission, and invalid-parameter errors.
 - Has a dry-run mode that prints the exact `oci compute instance launch` commands.
 - Has no third-party Python package dependencies.
 
@@ -27,6 +28,15 @@ launch` requests with the official OCI CLI and stops as soon as one request succ
 - A VCN subnet where the instance should be created.
 - An SSH public key file for instance access.
 - OCI permissions to launch Compute instances in the target compartment.
+
+## Current Always Free A1 Allocation
+
+Oracle currently documents the Always Free Ampere A1 allocation as a total of
+2 OCPUs and 12 GB of memory per tenancy in its home region. Oracle can change
+service limits, so verify the values shown under Limits, Quotas and Usage before
+choosing a larger configuration.
+
+https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
 
 ## Install OCI CLI
 
@@ -104,8 +114,8 @@ Edit `config.json` and fill in your own values:
   "ssh_public_key_file": "/path/to/id_rsa.pub",
   "display_name": "a1-flex",
   "shape": "VM.Standard.A1.Flex",
-  "ocpus": 4,
-  "memory_gb": 24,
+  "ocpus": 2,
+  "memory_gb": 12,
   "boot_volume_gb": 50,
   "availability_domains": [
     "example:REGION-AD-1",
@@ -179,15 +189,15 @@ Run continuously:
 Run with explicit timing:
 
 ```bash
-./a1_hammer.py --interval 25 --jitter 8
+./a1_hammer.py --interval 30 --jitter 10
 ```
 
 Run in the background on Linux:
 
 ```bash
 nohup ./a1_hammer.py \
-  --interval 25 \
-  --jitter 8 \
+  --interval 30 \
+  --jitter 10 \
   --log-file ./a1_hammer.log \
   > ./a1_hammer.out 2>&1 &
 ```
@@ -202,7 +212,7 @@ On Windows PowerShell:
 
 ```powershell
 python .\a1_hammer.py --dry-run --once
-python .\a1_hammer.py --interval 25 --jitter 8
+python .\a1_hammer.py --interval 30 --jitter 10
 ```
 
 ## Command Options
@@ -229,7 +239,7 @@ script increases the delay before continuing.
 Start conservatively, for example:
 
 ```bash
-./a1_hammer.py --interval 25 --jitter 8
+./a1_hammer.py --interval 30 --jitter 10
 ```
 
 Use shorter intervals only if they are appropriate for your tenancy and workload.
@@ -238,13 +248,21 @@ Use shorter intervals only if they are appropriate for your tenancy and workload
 
 There is no way to predict when Oracle will free up capacity. Based on community
 reports it can take anywhere from a few hours to several weeks depending on the
-region and time of day. Frankfurt tends to have better availability than US regions.
+region and time of day. Capacity varies by region and can change without notice.
 
 To improve your chances:
 
 - Use a Pay As You Go account instead of a free trial account.
 - Keep the script running continuously.
 - All three Availability Domains are tried automatically.
+
+## Tests
+
+Run the standard-library unit tests from the repository root:
+
+```bash
+python -m unittest discover -s tests -v
+```
 
 ## License
 

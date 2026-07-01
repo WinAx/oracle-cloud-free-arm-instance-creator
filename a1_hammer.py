@@ -20,6 +20,15 @@ DEFAULT_CONFIG = PROJECT_DIR / "config.json"
 DEFAULT_LOG = PROJECT_DIR / "a1_hammer.log"
 STOP = False
 
+PERMANENT_ERROR_HINTS = (
+    "service limits were exceeded",
+    "quota exceeded",
+    "notauthorizedornotfound",
+    "not authorized",
+    "invalidparameter",
+    "invalid parameter",
+)
+
 
 def stop_later(signum: int, _frame: object) -> None:
     global STOP
@@ -183,6 +192,11 @@ def throttle_delay(message: str, base: float, max_delay: float, throttle_count: 
     return delay + random.uniform(0, min(delay, base))
 
 
+def is_permanent_error(message: str) -> bool:
+    lowered = message.lower()
+    return any(hint in lowered for hint in PERMANENT_ERROR_HINTS)
+
+
 def run(args: argparse.Namespace) -> int:
     global LOG_FILE
     LOG_FILE = args.log_file
@@ -222,6 +236,13 @@ def run(args: argparse.Namespace) -> int:
             if args.dry_run:
                 continue
 
+            if is_permanent_error(message):
+                log(
+                    "fatal: OCI rejected the request with a non-retryable error; "
+                    "check config.json, IAM permissions, quotas, and service limits"
+                )
+                return 2
+
             delay = throttle_delay(message, args.throttle_sleep, args.max_throttle_sleep, throttle_count)
             if delay is not None:
                 throttle_count += 1
@@ -249,10 +270,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Retry OCI instance launch requests across configured ADs.")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--log-file", type=Path, default=DEFAULT_LOG)
-    parser.add_argument("--interval", type=float, default=65.0, help="Sleep after each failed launch request.")
-    parser.add_argument("--jitter", type=float, default=8.0, help="Random extra sleep after each failed request.")
-    parser.add_argument("--throttle-sleep", type=float, default=18.0, help="Base sleep after Too many requests.")
-    parser.add_argument("--max-throttle-sleep", type=float, default=180.0)
+    parser.add_argument("--interval", type=float, default=30.0, help="Sleep after each failed launch request.")
+    parser.add_argument("--jitter", type=float, default=10.0, help="Random extra sleep after each failed request.")
+    parser.add_argument("--throttle-sleep", type=float, default=120.0, help="Base sleep after Too many requests.")
+    parser.add_argument("--max-throttle-sleep", type=float, default=1800.0)
     parser.add_argument("--max-attempts", type=int)
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--shuffle", action="store_true", help="Shuffle AD order on startup.")

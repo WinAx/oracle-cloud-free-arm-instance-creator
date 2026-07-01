@@ -4,6 +4,7 @@ config.json
 # Runtime output
 *.log
 *.out
+*.eml
 nohup.out
 
 # Python
